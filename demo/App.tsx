@@ -7,7 +7,9 @@ interface Flags extends FeatureFlagMap {
 }
 
 const Hello: FC = () => {
-  const { welcome } = useFeatureFlags<Flags>();
+  const {
+    flags: { welcome },
+  } = useFeatureFlags<Flags>();
   return <h1>{welcome ? 'Welcome Enabled' : 'Welcome Disabled'}</h1>;
 };
 

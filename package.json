@@ -1,7 +1,15 @@
 {
   "name": "@chiltepin/feature-switch",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple feature flag library for React applications.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chiItepin/feature-switch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chiItepin/feature-switch/issues"
+  },
+  "homepage": "https://github.com/chiItepin/feature-switch#readme",
   "scripts": {
     "dev": "vite",
     "start": "vite",

@@ -1,10 +1,27 @@
-import React, { createContext, ReactNode, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 
 export type FeatureFlagMap = {
   [key: string]: boolean;
 };
 
-const FeatureFlagContext = createContext<FeatureFlagMap>({});
+interface FeatureFlagContextValue<T extends FeatureFlagMap = FeatureFlagMap> {
+  readonly flags: T;
+  readonly getSource: () => 'local' | 'remote';
+}
+
+const FeatureFlagContext = createContext<FeatureFlagContextValue>({
+  flags: {},
+  getSource: () => 'local',
+});
 
 type FeatureFlagProviderProps<T extends FeatureFlagMap> = {
   readonly source: 'local' | 'remote';
@@ -68,6 +85,9 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
     : defaultFeatures;
 
   const [featureFlags, setFeatureFlags] = useState<FeatureFlagMap>(defaultStoredFlags);
+  const storedFlagsSourceRef = useRef<'local' | 'remote'>(source);
+
+  const getSource = useCallback(() => storedFlagsSourceRef.current, []);
 
   useEffect(() => {
     if (source === 'remote' && fetchFeatureFlags) {
@@ -78,6 +98,7 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
 
         if (isCacheValid(parsedFlags.timestamp, cacheExpirationTime)) {
           setFeatureFlags(parsedFlags.flags);
+          storedFlagsSourceRef.current = 'local';
           return;
         }
       }
@@ -102,15 +123,25 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
 
         // Update state with remote flags
         setFeatureFlags(normalizedFlags);
+        storedFlagsSourceRef.current = 'remote';
       });
     } else if (source === 'local') {
-      const updatedFeatureFlags = getNormalizedFeatureFlags(defaultFeatures);
+      const updatedFeatureFlags = formatFeatureFlags
+        ? formatFeatureFlags(defaultFeatures)
+        : getNormalizedFeatureFlags(defaultFeatures);
       setFeatureFlags(updatedFeatureFlags);
     }
   }, [defaultFeatures, source, fetchFeatureFlags, cacheExpirationTime, formatFeatureFlags]);
 
-  return <FeatureFlagContext.Provider value={featureFlags}>{children}</FeatureFlagContext.Provider>;
+  const contextValue = useMemo(() => {
+    return {
+      flags: featureFlags,
+      getSource,
+    };
+  }, [featureFlags, getSource]);
+
+  return <FeatureFlagContext.Provider value={contextValue}>{children}</FeatureFlagContext.Provider>;
 };
 
-export const useFeatureFlags = <T extends FeatureFlagMap = FeatureFlagMap>(): T =>
-  useContext(FeatureFlagContext) as T;
+export const useFeatureFlags = <T extends FeatureFlagMap>(): FeatureFlagContextValue<T> =>
+  useContext(FeatureFlagContext) as FeatureFlagContextValue<T>;
