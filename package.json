@@ -1,6 +1,6 @@
 {
   "name": "@chiltepin/feature-switch",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A simple feature flag library for React applications.",
   "repository": {
     "type": "git",
