@@ -10,7 +10,7 @@ Feature Switch is a React-based library for managing feature flags in your appli
 ## Installation
 
 ```bash
-npm install feature-switch
+npm install @chiltepin/feature-switch
 ```
 
 ## Usage
@@ -22,11 +22,11 @@ import React from 'react';
 import { FeatureFlagProvider, useFeatureFlags } from 'feature-switch';
 
 const App = () => {
-  const featureFlags = useFeatureFlags();
+  const { flags: { featureA } } = useFeatureFlags();
 
   return (
     <div>
-      {featureFlags.featureA && <p>Feature A is enabled</p>}
+      {featureA && <p>Feature A is enabled</p>}
     </div>
   );
 };
@@ -34,6 +34,100 @@ const App = () => {
 export default () => (
   <FeatureFlagProvider source="local" defaultFeatures={{ featureA: true }}>
     <App />
+  </FeatureFlagProvider>
+);
+```
+
+## Advanced Usage Examples
+
+### Local Feature Flags
+
+```tsx
+import React from 'react';
+import { FeatureFlagProvider, useFeatureFlags } from 'feature-switch';
+
+const BasicUsage = () => {
+  const {
+    flags: { welcome },
+  } = useFeatureFlags();
+  return <h1>{welcome ? 'Welcome Enabled' : 'Welcome Disabled'}</h1>;
+};
+
+export const App = () => (
+  <FeatureFlagProvider
+    source="local"
+    defaultFeatures={{ welcome: false, anotherFeature: false }}
+  >
+    <BasicUsage />
+  </FeatureFlagProvider>
+);
+```
+
+### Remote Feature Flags
+
+```tsx
+const fetchFakeFeatureFlags = async () => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({ welcome: true, anotherFeature: false });
+    }, 3000);
+  });
+};
+
+export const App = () => (
+  <FeatureFlagProvider
+    source="remote"
+    defaultFeatures={{ welcome: false, anotherFeature: false }}
+    fetchFeatureFlags={fetchFakeFeatureFlags}
+  >
+    <BasicUsage />
+  </FeatureFlagProvider>
+);
+```
+
+### Custom Formatting
+
+```tsx
+const fetchFakeFeatureFlagsWithCustomFormat = async () => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({ welcome: { enabled: true }, anotherFeature: { enabled: false } });
+    }, 3000);
+  });
+};
+
+const CustomFormatUsage = () => {
+  const {
+    flags: { welcome },
+  } = useFeatureFlags();
+  return <h1>{welcome.enabled ? 'Flag is Enabled' : 'Flag is Disabled'}</h1>;
+};
+
+export const App = () => (
+  <FeatureFlagProvider
+    source="remote"
+    defaultFeatures={{ welcome: { enabled: false }, anotherFeature: { enabled: false } }}
+    fetchFeatureFlags={fetchFakeFeatureFlagsWithCustomFormat}
+  >
+    <CustomFormatUsage />
+  </FeatureFlagProvider>
+);
+```
+
+### Custom Normalization
+
+```tsx
+export const App = () => (
+  <FeatureFlagProvider
+    source="remote"
+    defaultFeatures={{ welcome: false, anotherFeature: false }}
+    fetchFeatureFlags={fetchFakeFeatureFlagsWithCustomFormat}
+    formatFeatureFlags={flags => ({
+      welcome: flags.welcome.enabled,
+      anotherFeature: flags.anotherFeature.enabled,
+    })}
+  >
+    <BasicUsage />
   </FeatureFlagProvider>
 );
 ```

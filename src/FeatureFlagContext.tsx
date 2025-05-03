@@ -1,4 +1,5 @@
 import React, {
+  FC,
   createContext,
   ReactNode,
   useContext,
@@ -10,7 +11,7 @@ import React, {
 } from 'react';
 
 export type FeatureFlagMap = {
-  [key: string]: boolean;
+  [key: string]: boolean | string;
 };
 
 interface FeatureFlagContextValue<T extends FeatureFlagMap = FeatureFlagMap> {
@@ -23,12 +24,12 @@ const FeatureFlagContext = createContext<FeatureFlagContextValue>({
   getSource: () => 'local',
 });
 
-type FeatureFlagProviderProps<T extends FeatureFlagMap> = {
+type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
   readonly source: 'local' | 'remote';
   readonly defaultFeatures: T;
   readonly children: ReactNode;
   readonly featureFlagsKeyStorage?: string;
-  readonly fetchFeatureFlags?: () => Promise<T[]>;
+  readonly fetchFeatureFlags?: () => Promise<Fetched>;
   /**
    * Optional cache expiration time in milliseconds.
    * Default is 24 hours (24 * 60 * 60 * 1000).
@@ -38,41 +39,26 @@ type FeatureFlagProviderProps<T extends FeatureFlagMap> = {
    * Optional function to format the feature flags fetched from the remote source.
    * This function should return a map of feature flags.
    */
-  readonly formatFeatureFlags?: (flags: any) => FeatureFlagMap;
+  readonly formatFeatureFlags?: (flags: any) => T;
 };
 
-interface LocalStorageFlags {
-  readonly flags: FeatureFlagMap;
+interface LocalStorageFlags<T = FeatureFlagMap> {
+  readonly flags: T;
   readonly timestamp: number;
 }
-
-const getFlagControl = (flag: any): boolean => {
-  if (typeof flag === 'boolean') {
-    return flag;
-  }
-
-  return false;
-};
-
-const getNormalizedFeatureFlags = (flags: Record<string, any>): FeatureFlagMap => {
-  return Object.entries(flags).reduce((acc: FeatureFlagMap, [key, value]) => {
-    acc[key] = getFlagControl(value);
-    return acc;
-  }, {});
-};
 
 const isCacheValid = (timestamp: number, cacheExpirationTime: number) =>
   Date.now() - timestamp < cacheExpirationTime;
 
-export const FeatureFlagProvider = <T extends FeatureFlagMap>({
+export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
   defaultFeatures,
   children,
   source,
   featureFlagsKeyStorage = 'featureFlags',
   fetchFeatureFlags,
-  cacheExpirationTime = 24 * 60 * 60 * 1000, // Default 24 hours expiration
+  cacheExpirationTime = 24 * 60 * 60 * 1000, // Default 24 hours expiration or 1 min: 60 * 1000
   formatFeatureFlags,
-}: FeatureFlagProviderProps<T>) => {
+}: FeatureFlagProviderProps<T, Fetched>) => {
   const isBrowser = typeof window !== 'undefined';
 
   const storedFlags =
@@ -84,7 +70,7 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
       }
     : defaultFeatures;
 
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlagMap>(defaultStoredFlags);
+  const [featureFlags, setFeatureFlags] = useState<T>(defaultStoredFlags);
   const storedFlagsSourceRef = useRef<'local' | 'remote'>(source);
 
   const getSource = useCallback(() => storedFlagsSourceRef.current, []);
@@ -94,7 +80,7 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
       const storedFlags = isBrowser ? localStorage.getItem(featureFlagsKeyStorage) : null;
 
       if (storedFlags) {
-        const parsedFlags = JSON.parse(storedFlags) as LocalStorageFlags;
+        const parsedFlags = JSON.parse(storedFlags) as LocalStorageFlags<T>;
 
         if (isCacheValid(parsedFlags.timestamp, cacheExpirationTime)) {
           setFeatureFlags(parsedFlags.flags);
@@ -105,12 +91,7 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
 
       // If cache is expired or not available, fetch remote flags
       fetchFeatureFlags().then(remoteFlags => {
-        const normalizedFlags = remoteFlags.reduce((acc: FeatureFlagMap, flag) => {
-          const formattedFlag = formatFeatureFlags
-            ? formatFeatureFlags(flag)
-            : getNormalizedFeatureFlags(flag);
-          return { ...acc, ...formattedFlag };
-        }, {});
+        const normalizedFlags = formatFeatureFlags ? formatFeatureFlags(remoteFlags) : remoteFlags;
 
         const timestamp = Date.now();
 
@@ -122,13 +103,13 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
         }
 
         // Update state with remote flags
-        setFeatureFlags(normalizedFlags);
+        setFeatureFlags(normalizedFlags as T);
         storedFlagsSourceRef.current = 'remote';
       });
     } else if (source === 'local') {
       const updatedFeatureFlags = formatFeatureFlags
         ? formatFeatureFlags(defaultFeatures)
-        : getNormalizedFeatureFlags(defaultFeatures);
+        : defaultFeatures;
       setFeatureFlags(updatedFeatureFlags);
     }
   }, [defaultFeatures, source, fetchFeatureFlags, cacheExpirationTime, formatFeatureFlags]);
@@ -143,5 +124,5 @@ export const FeatureFlagProvider = <T extends FeatureFlagMap>({
   return <FeatureFlagContext.Provider value={contextValue}>{children}</FeatureFlagContext.Provider>;
 };
 
-export const useFeatureFlags = <T extends FeatureFlagMap>(): FeatureFlagContextValue<T> =>
+export const useFeatureFlags = <T extends Record<any, any>>(): FeatureFlagContextValue<T> =>
   useContext(FeatureFlagContext) as FeatureFlagContextValue<T>;

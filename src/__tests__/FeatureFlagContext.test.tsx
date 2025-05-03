@@ -10,32 +10,8 @@ describe('FeatureFlagContext', () => {
       const featureFlags = useFeatureFlags();
       return (
         <div>
-          <span data-testid="featureA">{featureFlags.featureA.toString()}</span>
-          <span data-testid="featureB">{featureFlags.featureB.toString()}</span>
-        </div>
-      );
-    };
-
-    render(
-      <FeatureFlagProvider source="local" defaultFeatures={defaultFeatures}>
-        <TestComponent />
-      </FeatureFlagProvider>
-    );
-
-    expect(screen.getByTestId('featureA').textContent).toBe('true');
-    expect(screen.getByTestId('featureB').textContent).toBe('false');
-  });
-
-  it('provides normalized feature flags when source is local', () => {
-    // @ts-expect-error
-    const defaultFeatures: FeatureFlagMap = { featureA: true, featureB: 'invalid' };
-
-    const TestComponent = () => {
-      const featureFlags = useFeatureFlags();
-      return (
-        <div>
-          <span data-testid="featureA">{featureFlags.featureA.toString()}</span>
-          <span data-testid="featureB">{featureFlags.featureB.toString()}</span>
+          <span data-testid="featureA">{featureFlags.flags.featureA.toString()}</span>
+          <span data-testid="featureB">{featureFlags.flags.featureB.toString()}</span>
         </div>
       );
     };
