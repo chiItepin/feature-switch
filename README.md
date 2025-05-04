@@ -19,7 +19,7 @@ npm install @chiltepin/feature-switch
 
 ```tsx
 import React from 'react';
-import { FeatureFlagProvider, useFeatureFlags } from 'feature-switch';
+import { FeatureFlagProvider, useFeatureFlags } from '@chiltepin/feature-switch';
 
 const App = () => {
   const { flags: { featureA } } = useFeatureFlags();
@@ -118,7 +118,7 @@ export const App = () => (
 
 ```tsx
 export const App = () => (
-  <FeatureFlagProvider
+  <FeatureFlagProvider<Flags, CustomFormatFlags>
     source="remote"
     defaultFeatures={{ welcome: false, anotherFeature: false }}
     fetchFeatureFlags={fetchFakeFeatureFlagsWithCustomFormat}

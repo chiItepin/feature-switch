@@ -1,5 +1,5 @@
 import React, { FC } from 'react';
-import { FeatureFlagProvider, useFeatureFlags } from '../src';
+import { FeatureFlagProvider, useFeatureFlags, useFeatureFlag } from '../src';
 
 interface Flags {
   readonly welcome: boolean;
@@ -35,10 +35,8 @@ const fetchFakeFeatureFlagsWithCustomFormat = async (): Promise<CustomFormatFlag
 };
 
 const CustomFormatUsage: FC = () => {
-  const {
-    flags: { welcome },
-  } = useFeatureFlags<CustomFormatFlags>();
-  return <h1>{welcome.enabled ? 'Flag is Enabled' : 'Flag is Disabled'}</h1>;
+  const welcomeFlag = useFeatureFlag<CustomFormatFlags>('welcome')?.enabled;
+  return <h1>{welcomeFlag ? 'Flag is Enabled' : 'Flag is Disabled'}</h1>;
 };
 
 export const App = () => (

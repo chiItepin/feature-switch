@@ -30,6 +30,7 @@ type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
   readonly children: ReactNode;
   readonly featureFlagsKeyStorage?: string;
   readonly fetchFeatureFlags?: () => Promise<Fetched>;
+  readonly onFetchFeatureFlagsError?: (error: Error) => void;
   /**
    * Optional cache expiration time in milliseconds.
    * Default is 24 hours (24 * 60 * 60 * 1000).
@@ -39,7 +40,7 @@ type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
    * Optional function to format the feature flags fetched from the remote source.
    * This function should return a map of feature flags.
    */
-  readonly formatFeatureFlags?: (flags: any) => T;
+  readonly formatFeatureFlags?: (flags: Fetched) => T;
 };
 
 interface LocalStorageFlags<T = FeatureFlagMap> {
@@ -56,6 +57,7 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
   source,
   featureFlagsKeyStorage = 'featureFlags',
   fetchFeatureFlags,
+  onFetchFeatureFlagsError,
   cacheExpirationTime = 24 * 60 * 60 * 1000, // Default 24 hours expiration or 1 min: 60 * 1000
   formatFeatureFlags,
 }: FeatureFlagProviderProps<T, Fetched>) => {
@@ -90,29 +92,43 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
       }
 
       // If cache is expired or not available, fetch remote flags
-      fetchFeatureFlags().then(remoteFlags => {
-        const normalizedFlags = formatFeatureFlags ? formatFeatureFlags(remoteFlags) : remoteFlags;
+      fetchFeatureFlags()
+        .then(remoteFlags => {
+          const normalizedFlags = formatFeatureFlags
+            ? formatFeatureFlags(remoteFlags)
+            : remoteFlags;
 
-        const timestamp = Date.now();
+          const timestamp = Date.now();
 
-        if (isBrowser) {
-          localStorage.setItem(
-            featureFlagsKeyStorage,
-            JSON.stringify({ flags: normalizedFlags, timestamp })
-          );
-        }
+          if (isBrowser) {
+            localStorage.setItem(
+              featureFlagsKeyStorage,
+              JSON.stringify({ flags: normalizedFlags, timestamp })
+            );
+          }
 
-        // Update state with remote flags
-        setFeatureFlags(normalizedFlags as T);
-        storedFlagsSourceRef.current = 'remote';
-      });
+          // Update state with remote flags
+          setFeatureFlags(normalizedFlags as T);
+          storedFlagsSourceRef.current = 'remote';
+        })
+        .catch(error => {
+          console.error('Error fetching feature flags:', error);
+          onFetchFeatureFlagsError?.(error);
+        });
     } else if (source === 'local') {
       const updatedFeatureFlags = formatFeatureFlags
         ? formatFeatureFlags(defaultFeatures)
         : defaultFeatures;
       setFeatureFlags(updatedFeatureFlags);
     }
-  }, [defaultFeatures, source, fetchFeatureFlags, cacheExpirationTime, formatFeatureFlags]);
+  }, [
+    defaultFeatures,
+    source,
+    fetchFeatureFlags,
+    onFetchFeatureFlagsError,
+    cacheExpirationTime,
+    formatFeatureFlags,
+  ]);
 
   const contextValue = useMemo(() => {
     return {
@@ -126,3 +142,10 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
 
 export const useFeatureFlags = <T extends Record<any, any>>(): FeatureFlagContextValue<T> =>
   useContext(FeatureFlagContext) as FeatureFlagContextValue<T>;
+
+export const useFeatureFlag = <T extends Record<any, any>>(
+  key: keyof T
+): T[keyof T] | undefined => {
+  const { flags } = useFeatureFlags<T>();
+  return flags[key];
+};
