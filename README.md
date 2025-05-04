@@ -132,6 +132,20 @@ export const App = () => (
 );
 ```
 
+### FeatureFlagProvider Props
+
+| Prop Name                | Type                          | Description                                                                                     |
+|--------------------------|-------------------------------|-------------------------------------------------------------------------------------------------|
+| `source`                 | `'local' | 'remote'`          | Specifies the source of the feature flags.                                                     |
+| `defaultFeatures`        | `Record<string, any>`         | The default feature flags to use.                                                              |
+| `children`               | `ReactNode`                  | The child components to render within the provider.                                             |
+| `featureFlagsKeyStorage` | `string`                     | (Optional) The key used to store feature flags in localStorage. Default is `'featureFlags'`.    |
+| `fetchFeatureFlags`      | `() => Promise<Record>`      | (Optional) A function to fetch feature flags from a remote source.                              |
+| `onFetchFeatureFlagsError` | `(error: Error) => void`    | (Optional) Callback invoked when fetching feature flags fails.                                  |
+| `onFetchFeatureFlagsSuccess` | `() => void`             | (Optional) Callback invoked when fetching feature flags succeeds.                               |
+| `cacheExpirationTime`    | `number`                     | (Optional) Cache expiration time in milliseconds. Default is 24 hours.                         |
+| `formatFeatureFlags`     | `(flags: any) => Record`     | (Optional) Function to format the fetched feature flags.                                        |
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.

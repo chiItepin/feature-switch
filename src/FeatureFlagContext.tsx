@@ -31,6 +31,7 @@ type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
   readonly featureFlagsKeyStorage?: string;
   readonly fetchFeatureFlags?: () => Promise<Fetched>;
   readonly onFetchFeatureFlagsError?: (error: Error) => void;
+  readonly onFetchFeatureFlagsSuccess?: () => void;
   /**
    * Optional cache expiration time in milliseconds.
    * Default is 24 hours (24 * 60 * 60 * 1000).
@@ -58,6 +59,7 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
   featureFlagsKeyStorage = 'featureFlags',
   fetchFeatureFlags,
   onFetchFeatureFlagsError,
+  onFetchFeatureFlagsSuccess,
   cacheExpirationTime = 24 * 60 * 60 * 1000, // Default 24 hours expiration or 1 min: 60 * 1000
   formatFeatureFlags,
 }: FeatureFlagProviderProps<T, Fetched>) => {
@@ -110,6 +112,7 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
           // Update state with remote flags
           setFeatureFlags(normalizedFlags as T);
           storedFlagsSourceRef.current = 'remote';
+          onFetchFeatureFlagsSuccess?.();
         })
         .catch(error => {
           console.error('Error fetching feature flags:', error);
@@ -126,6 +129,7 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
     source,
     fetchFeatureFlags,
     onFetchFeatureFlagsError,
+    onFetchFeatureFlagsSuccess,
     cacheExpirationTime,
     formatFeatureFlags,
   ]);
