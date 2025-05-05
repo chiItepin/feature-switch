@@ -32,7 +32,10 @@
   "author": "",
   "license": "ISC",
   "jest": {
-    "testEnvironment": "jsdom"
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ]
   },
   "devDependencies": {
     "@babel/preset-env": "^7.27.1",

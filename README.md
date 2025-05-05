@@ -132,6 +132,53 @@ export const App = () => (
 );
 ```
 
+### Server-Side Rendering (SSR) Usage
+
+To support SSR (e.g., in Next.js), you can fetch and pass flags to the FeatureFlagProvider using the defaultFeatures prop.
+
+```tsx
+export async function getServerSideProps() {
+  const res = await fetch('https://your-api.com/feature-flags');
+  const flags = await res.json();
+
+  return {
+    props: {
+      initialFlags: flags,
+    },
+  };
+}
+```
+
+## Output of `useFeatureFlags`
+
+The `useFeatureFlags` hook provides access to the current feature flags and utility functions for managing them.
+
+### Return Value
+
+The hook returns an object with the following properties:
+
+| Property         | Type                          | Description                                                                 |
+|------------------|-------------------------------|-----------------------------------------------------------------------------|
+| `flags`          | `Record<string, any>`         | The current feature flags and their values.                                |
+| `getSource`      | `() => 'local' | 'remote'`  | A function to get the source of the feature flags (local or remote).       |
+| `refetchFlags`   | `() => void` (optional)       | A function to manually refetch feature flags from the remote source.       |
+| `overrideFlag`   | `(key: string, value: any) => void` (optional) | A function to override a specific feature flag value.                      |
+
+### Example
+
+```tsx
+const { flags, getSource, refetchFlags, overrideFlag } = useFeatureFlags();
+
+console.log(flags); // { featureA: true, featureB: false }
+console.log(getSource()); // 'local'
+
+// Override a flag
+overrideFlag?.('featureA', false);
+
+// Refetch flags (only available for remote source)
+refetchFlags?.();
+```
+
 ### FeatureFlagProvider Props
 
 | Prop Name                | Type                          | Description                                                                                     |
@@ -145,6 +192,39 @@ export const App = () => (
 | `onFetchFeatureFlagsSuccess` | `() => void`             | (Optional) Callback invoked when fetching feature flags succeeds.                               |
 | `cacheExpirationTime`    | `number`                     | (Optional) Cache expiration time in milliseconds. Default is 24 hours.                         |
 | `formatFeatureFlags`     | `(flags: any) => Record`     | (Optional) Function to format the fetched feature flags.                                        |
+
+## Debug Panel
+
+The `FeatureFlagsDebugPanel` is a development tool that allows you to view and override feature flags in real-time. It is only available in development mode (`process.env.NODE_ENV === 'development'`).
+
+### Usage
+
+To use the debug panel, include it within your `FeatureFlagProvider`:
+
+```tsx
+import { FeatureFlagsDebugPanel } from '@chiltepin/feature-switch';
+
+<FeatureFlagProvider source="local" defaultFeatures={{ featureA: true }}>
+  <FeatureFlagsDebugPanel />
+  <App />
+</FeatureFlagProvider>
+```
+
+### Features
+- Displays all current feature flags and their values.
+- Allows toggling feature flags on or off.
+- Automatically updates the application state when a flag is changed.
+
+### Example
+
+```tsx
+<FeatureFlagProvider source="local" defaultFeatures={{ featureA: true, featureB: false }}>
+  <FeatureFlagsDebugPanel />
+  <App />
+</FeatureFlagProvider>
+```
+
+When the debug panel is active, a button will appear in the bottom-right corner of the screen. Clicking it opens a dialog where you can toggle feature flags.
 
 ## Contributing
 

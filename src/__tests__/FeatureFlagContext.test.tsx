@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { FeatureFlagProvider, useFeatureFlags, FeatureFlagMap } from '../FeatureFlagContext';
+import { FeatureFlagProvider, useFeatureFlags } from '../FeatureFlagContext';
 
 describe('FeatureFlagContext', () => {
   it('provides default feature flags when source is local', () => {

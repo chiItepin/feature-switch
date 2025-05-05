@@ -1,5 +1,4 @@
 import React, {
-  FC,
   createContext,
   ReactNode,
   useContext,
@@ -10,18 +9,22 @@ import React, {
   useRef,
 } from 'react';
 
-export type FeatureFlagMap = {
-  [key: string]: boolean | string;
-};
-
+type FeatureFlagMap = Record<string, any>;
 interface FeatureFlagContextValue<T extends FeatureFlagMap = FeatureFlagMap> {
   readonly flags: T;
   readonly getSource: () => 'local' | 'remote';
+  readonly refetchFlags: () => void;
+  /**
+   * Optional function to *override* a specific feature flag.
+   */
+  readonly overrideFlag: (key: keyof T, value: T[keyof T]) => void;
 }
 
-const FeatureFlagContext = createContext<FeatureFlagContextValue>({
+const FeatureFlagContext = createContext<FeatureFlagContextValue<any>>({
   flags: {},
   getSource: () => 'local',
+  refetchFlags: () => {},
+  overrideFlag: () => {},
 });
 
 type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
@@ -32,6 +35,10 @@ type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
   readonly fetchFeatureFlags?: () => Promise<Fetched>;
   readonly onFetchFeatureFlagsError?: (error: Error) => void;
   readonly onFetchFeatureFlagsSuccess?: () => void;
+  /**
+   * Optional function to refetch feature flags from the remote source manually.
+   */
+  readonly refetchFlags?: () => Promise<void>;
   /**
    * Optional cache expiration time in milliseconds.
    * Default is 24 hours (24 * 60 * 60 * 1000).
@@ -79,21 +86,8 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
 
   const getSource = useCallback(() => storedFlagsSourceRef.current, []);
 
-  useEffect(() => {
+  const refetchFlags = useCallback(() => {
     if (source === 'remote' && fetchFeatureFlags) {
-      const storedFlags = isBrowser ? localStorage.getItem(featureFlagsKeyStorage) : null;
-
-      if (storedFlags) {
-        const parsedFlags = JSON.parse(storedFlags) as LocalStorageFlags<T>;
-
-        if (isCacheValid(parsedFlags.timestamp, cacheExpirationTime)) {
-          setFeatureFlags(parsedFlags.flags);
-          storedFlagsSourceRef.current = 'local';
-          return;
-        }
-      }
-
-      // If cache is expired or not available, fetch remote flags
       fetchFeatureFlags()
         .then(remoteFlags => {
           const normalizedFlags = formatFeatureFlags
@@ -118,6 +112,45 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
           console.error('Error fetching feature flags:', error);
           onFetchFeatureFlagsError?.(error);
         });
+    } else {
+      console.warn(
+        'Refetching feature flags is only available for remote source with a fetchFeatureFlags function.'
+      );
+    }
+  }, [
+    fetchFeatureFlags,
+    formatFeatureFlags,
+    onFetchFeatureFlagsError,
+    onFetchFeatureFlagsSuccess,
+    source,
+    featureFlagsKeyStorage,
+  ]);
+
+  const overrideFlag: NonNullable<FeatureFlagContextValue<T>['overrideFlag']> = useCallback(
+    (key, value) => {
+      setFeatureFlags(prevFlags => ({
+        ...prevFlags,
+        [key]: value,
+      }));
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (source === 'remote' && fetchFeatureFlags) {
+      const storedFlags = isBrowser ? localStorage.getItem(featureFlagsKeyStorage) : null;
+
+      if (storedFlags) {
+        const parsedFlags = JSON.parse(storedFlags) as LocalStorageFlags<T>;
+
+        if (isCacheValid(parsedFlags.timestamp, cacheExpirationTime)) {
+          setFeatureFlags(parsedFlags.flags);
+          storedFlagsSourceRef.current = 'local';
+          return;
+        }
+      }
+
+      refetchFlags();
     } else if (source === 'local') {
       const updatedFeatureFlags = formatFeatureFlags
         ? formatFeatureFlags(defaultFeatures)
@@ -130,24 +163,27 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
     fetchFeatureFlags,
     onFetchFeatureFlagsError,
     onFetchFeatureFlagsSuccess,
+    refetchFlags,
     cacheExpirationTime,
     formatFeatureFlags,
   ]);
 
-  const contextValue = useMemo(() => {
+  const contextValue: FeatureFlagContextValue<T> = useMemo(() => {
     return {
       flags: featureFlags,
+      refetchFlags,
+      overrideFlag,
       getSource,
     };
-  }, [featureFlags, getSource]);
+  }, [featureFlags, getSource, refetchFlags, overrideFlag]);
 
   return <FeatureFlagContext.Provider value={contextValue}>{children}</FeatureFlagContext.Provider>;
 };
 
-export const useFeatureFlags = <T extends Record<any, any>>(): FeatureFlagContextValue<T> =>
+export const useFeatureFlags = <T extends Record<string, any>>(): FeatureFlagContextValue<T> =>
   useContext(FeatureFlagContext) as FeatureFlagContextValue<T>;
 
-export const useFeatureFlag = <T extends Record<any, any>>(
+export const useFeatureFlag = <T extends Record<string, any>>(
   key: keyof T
 ): T[keyof T] | undefined => {
   const { flags } = useFeatureFlags<T>();
