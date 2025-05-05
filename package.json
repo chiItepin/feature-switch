@@ -1,6 +1,6 @@
 {
   "name": "@chiltepin/feature-switch",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A simple feature flag library for React applications.",
   "repository": {
     "type": "git",
@@ -28,6 +28,12 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md"
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",
