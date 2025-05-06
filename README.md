@@ -195,7 +195,7 @@ refetchFlags?.();
 
 ## Debug Panel
 
-The `FeatureFlagsDebugPanel` is a development tool that allows you to view and override feature flags in real-time. It is only available in development mode (`process.env.NODE_ENV === 'development'`).
+The `FeatureFlagsDebugPanel` is a development tool that allows you to view and override feature flags in real-time. It is only available in development mode (`process.env.NODE_ENV === 'development'`) though it can be rendered in production if `shouldShow` is provided.
 
 ### Usage
 

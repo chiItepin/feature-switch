@@ -9,6 +9,12 @@ import React, {
   useRef,
 } from 'react';
 
+const isLocalStorageFlags = <T extends Record<any, any>>(
+  flags: any
+): flags is LocalStorageFlags<T> => {
+  return typeof flags === 'object' && flags !== null && 'flags' in flags && 'timestamp' in flags;
+};
+
 type FeatureFlagMap = Record<string, any>;
 interface FeatureFlagContextValue<T extends FeatureFlagMap = FeatureFlagMap> {
   readonly flags: T;
@@ -52,8 +58,8 @@ type FeatureFlagProviderProps<T = FeatureFlagMap, Fetched = T> = {
 };
 
 interface LocalStorageFlags<T = FeatureFlagMap> {
-  readonly flags: T;
-  readonly timestamp: number;
+  flags: T;
+  timestamp: number;
 }
 
 const isCacheValid = (timestamp: number, cacheExpirationTime: number) =>
@@ -128,12 +134,21 @@ export const FeatureFlagProvider = <T extends Record<any, any>, Fetched = T>({
 
   const overrideFlag: NonNullable<FeatureFlagContextValue<T>['overrideFlag']> = useCallback(
     (key, value) => {
-      setFeatureFlags(prevFlags => ({
-        ...prevFlags,
+      const updatedFeatureFlags = {
+        ...featureFlags,
         [key]: value,
-      }));
+      };
+      setFeatureFlags(updatedFeatureFlags);
+      if (isBrowser && source === 'remote') {
+        const storedFlags = localStorage.getItem(featureFlagsKeyStorage);
+        const parsedFlags = storedFlags ? JSON.parse(storedFlags) : null;
+        if (isLocalStorageFlags(parsedFlags)) {
+          parsedFlags.flags[key] = value;
+          localStorage.setItem(featureFlagsKeyStorage, JSON.stringify(parsedFlags));
+        }
+      }
     },
-    []
+    [featureFlags, source, featureFlagsKeyStorage]
   );
 
   useEffect(() => {
