@@ -228,7 +228,7 @@ When the debug panel is active, a button will appear in the bottom-right corner 
 
 ## Acknowledgments
 
-This library is proudly supported by [fibite.online](https://fibite.online), a key contributor to its development and maintenance.
+This library is proudly supported by [fitbite.online](https://fitbite.online), a key contributor to its development and maintenance.
 
 ## Contributing
 
