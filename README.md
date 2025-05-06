@@ -226,6 +226,10 @@ import { FeatureFlagsDebugPanel } from '@chiltepin/feature-switch';
 
 When the debug panel is active, a button will appear in the bottom-right corner of the screen. Clicking it opens a dialog where you can toggle feature flags.
 
+## Acknowledgments
+
+This library is proudly supported by [fibite.online](https://fibite.online), a key contributor to its development and maintenance.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
